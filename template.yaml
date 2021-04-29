@@ -1,0 +1,99 @@
+# https://github.com/awslabs/serverless-application-model/blob/develop/versions/2016-10-31.md
+# Indentation needs to be set with spaces, because YAML...
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: API endpoint for bgs post match stats
+
+Globals:
+    Api:
+        # API Gateway regional endpoints
+        EndpointConfiguration: EDGE
+        Cors:
+            AllowMethods: "'*'"
+            AllowHeaders: "'*'"
+            AllowOrigin: "'*'"
+    Function:
+        Environment:
+            Variables:
+                SQS_URL: !Ref SaveBgsPostMatchStatsQueue
+
+Resources:
+    SaveBgsPostMatchStatsQueue:
+        Type: AWS::SQS::Queue
+        Properties:
+            QueueName: deferred-save-bgs-post-match-stats-queue
+            VisibilityTimeout: 601
+    RetrieveBgsPostMatchStatsFunction:
+        Type: AWS::Serverless::Function
+        Properties:
+            Handler: retrieve-bgs-post-match-stats.default
+            Runtime: nodejs10.x
+            Timeout: 3
+            MemorySize: 128
+            CodeUri: ./dist/retrieve-bgs-post-match-stats
+            Policies:
+                - AWSLambdaVPCAccessExecutionRole
+                - AmazonSESFullAccess
+                - AmazonSQSFullAccess
+                - SecretsManagerReadWrite
+                # - arn:aws:iam::478062583808:policy/CloudWatchPolicyForLambda # See https://stackoverflow.com/questions/51166504/disable-cloudwatch-to-monitor-logs-for-lambda-function
+            Tags:
+                LambdaName: api-retrieve-bgs-post-match-stats
+            Events:
+                SaveBgsPostMatchStatsResource:
+                    Type: Api
+                    Properties:
+                        Path: /get/{proxy+}
+                        Method: any
+    StartSaveBgsPostMatchStatsFunction:
+        Type: AWS::Serverless::Function
+        Properties:
+            Handler: start-save-bgs-post-match-stats.default
+            Runtime: nodejs10.x
+            Timeout: 3
+            MemorySize: 128
+            CodeUri: ./dist/start-save-bgs-post-match-stats
+            Policies:
+                - AWSLambdaVPCAccessExecutionRole
+                - AmazonSESFullAccess
+                - AmazonSQSFullAccess
+                - SecretsManagerReadWrite
+                - arn:aws:iam::478062583808:policy/CloudWatchPolicyForLambda # See https://stackoverflow.com/questions/51166504/disable-cloudwatch-to-monitor-logs-for-lambda-function
+            Tags:
+                LambdaName: api-start-save-bgs-post-match-stats
+            Events:
+                SaveBgsPostMatchStatsResource:
+                    Type: Api
+                    Properties:
+                        Path: /post/{proxy+}
+                        Method: any
+    ProcessSaveBgsPostMatchStatsFunction:
+        Type: AWS::Serverless::Function
+        Properties:
+            Handler: process-save-bgs-post-match-stats.default
+            Runtime: nodejs10.x
+            CodeUri: ./dist/process-save-bgs-post-match-stats
+            MemorySize: 128
+            ReservedConcurrentExecutions: 1
+            Policies:
+                - AWSLambdaVPCAccessExecutionRole
+                - SecretsManagerReadWrite
+                - AmazonSESFullAccess
+                - AmazonSQSFullAccess
+                # - arn:aws:iam::478062583808:policy/CloudWatchPolicyForLambda # See https://stackoverflow.com/questions/51166504/disable-cloudwatch-to-monitor-logs-for-lambda-function
+            Tags:
+                LambdaName: process-save-bgs-post-match-stats
+            Timeout: 60
+            Events:
+                SQSMapperRequestedEvent:
+                    Type: SQS
+                    Properties:
+                        Queue: !GetAtt SaveBgsPostMatchStatsQueue.Arn
+                        # BatchSize: 1
+
+Outputs:
+    UserBgsPostMatchStatsApi:
+        Description: URL to save bgs-post-match-stats
+        Value: !Sub 'https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/userBgsPostMatchStats'
+        Export:
+            Name: UserBgsPostMatchStatsApi
