@@ -50,6 +50,11 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, mysqlBgs: Serv
 		input.battleResultHistory,
 		input.faceOffs,
 	);
+	if (!postMatchStats) {
+		console.error('Could not parse post-match stats');
+		return;
+	}
+
 	console.log('parsed game');
 	if (debug) {
 		console.log(JSON.stringify(input));

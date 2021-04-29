@@ -65,7 +65,7 @@ Resources:
                 SaveBgsPostMatchStatsResource:
                     Type: Api
                     Properties:
-                        Path: /post/{proxy+}
+                        Path: /save/{proxy+}
                         Method: any
     ProcessSaveBgsPostMatchStatsFunction:
         Type: AWS::Serverless::Function
