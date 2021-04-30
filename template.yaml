@@ -28,7 +28,7 @@ Resources:
         Properties:
             Handler: retrieve-bgs-post-match-stats.default
             Runtime: nodejs10.x
-            Timeout: 3
+            Timeout: 15
             MemorySize: 128
             CodeUri: ./dist/retrieve-bgs-post-match-stats
             Policies:
@@ -73,8 +73,8 @@ Resources:
             Handler: process-save-bgs-post-match-stats.default
             Runtime: nodejs10.x
             CodeUri: ./dist/process-save-bgs-post-match-stats
-            MemorySize: 128
-            ReservedConcurrentExecutions: 1
+            MemorySize: 448
+            ReservedConcurrentExecutions: 3
             Policies:
                 - AWSLambdaVPCAccessExecutionRole
                 - SecretsManagerReadWrite

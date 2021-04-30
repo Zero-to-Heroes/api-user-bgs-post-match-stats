@@ -75,7 +75,7 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, mysqlBgs: Serv
 	const heroCardId = input.heroCardId ? `'${input.heroCardId}'` : 'NULL';
 	const dbResults: any[] = await mysqlBgs.query(
 		`
-			INSERT INTO bgs_single_run_stats
+			INSERT IGNORE INTO bgs_single_run_stats
 			(
 				reviewId,
 				jsonStats,
@@ -115,9 +115,9 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, mysqlBgs: Serv
 
 		// Load existing stats
 		const query = `
-					SELECT * FROM bgs_user_best_stats
-					WHERE userId IN (${userIds.map(result => "'" + result.userId + "'").join(',')})
-				`;
+			SELECT * FROM bgs_user_best_stats
+			WHERE userId IN (${userIds.map(result => "'" + result.userId + "'").join(',')})
+		`;
 		console.log('selecting existing stats', query);
 		const existingStats: BgsBestStat[] = await mysqlBgs.query(query);
 		console.log('got existing stats', existingStats);
@@ -130,17 +130,16 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, mysqlBgs: Serv
 		const createQuery =
 			statsToCreate.length > 0
 				? `
-							INSERT INTO bgs_user_best_stats
-							(userId, statName, value, lastUpdateDate, reviewId)
-							VALUES 
-								${statsToCreate.map(stat => toStatCreationLine(stat, today)).join(',\n')}
-						`
+						INSERT INTO bgs_user_best_stats
+						(userId, statName, value, lastUpdateDate, reviewId)
+						VALUES 
+							${statsToCreate.map(stat => toStatCreationLine(stat, today)).join(',\n')}
+					`
 				: null;
 		const updateQueries = statsToUpdate.map(
 			stat => `
 						UPDATE bgs_user_best_stats
 						SET 
-							userId = '${input.userId}',
 							value = ${stat.value},
 							heroCardId = '${stat.heroCardId}',
 							lastUpdateDate = '${today}',
@@ -208,7 +207,7 @@ const loadReviewInternal = async (reviewId: string, mysql: ServerlessMysql, call
 	console.log('dbResults', dbResults);
 	const review = dbResults && dbResults.length > 0 ? dbResults[0] : null;
 	if (!review) {
-		setTimeout(() => loadReviewInternal(reviewId, callback, retriesLeft - 1), 1000);
+		setTimeout(() => loadReviewInternal(reviewId, mysql, callback, retriesLeft - 1), 1000);
 		return;
 	}
 	callback(review);
