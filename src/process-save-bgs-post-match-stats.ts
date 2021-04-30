@@ -12,7 +12,6 @@ import { buildNewStats } from './stats-builder';
 const s3 = new S3();
 
 export default async (event, context): Promise<any> => {
-	console.log('received event', event);
 	const events: readonly Input[] = (event.Records as any[])
 		.map(event => JSON.parse(event.body))
 		.reduce((a, b) => a.concat(b), [])
@@ -20,7 +19,6 @@ export default async (event, context): Promise<any> => {
 	const mysql = await getConnection();
 	const mysqlBgs = await getConnectionBgs();
 	for (const ev of events) {
-		console.log('processing event', ev);
 		await processEvent(ev, mysql, mysqlBgs);
 	}
 	const response = {
@@ -28,21 +26,17 @@ export default async (event, context): Promise<any> => {
 		isBase64Encoded: false,
 		body: null,
 	};
-	console.log('sending back success reponse');
 	await mysql.end();
 	await mysqlBgs.end();
 	return response;
 };
 
 const processEvent = async (input: Input, mysql: ServerlessMysql, mysqlBgs: ServerlessMysql) => {
-	console.log('handling input', input);
 	const debug = input.userName === 'daedin';
 
 	const review = await loadReview(input.reviewId, mysql);
-	console.log('loaded review');
 	const replayKey = review.replayKey;
 	const replayXml = await loadReplayString(replayKey);
-	console.log('loaded replay xml', replayXml?.length);
 
 	const postMatchStats = parseBattlegroundsGame(
 		replayXml,
@@ -55,10 +49,7 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, mysqlBgs: Serv
 		return;
 	}
 
-	console.log('parsed game');
 	if (debug) {
-		console.log(JSON.stringify(input));
-		console.log(JSON.stringify(postMatchStats));
 	}
 	const oldMmr = input.oldMmr;
 	const newMmr = input.newMmr;
@@ -69,7 +60,6 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, mysqlBgs: Serv
 		newMmr: newMmr,
 	};
 	const compressedStats: string = compressStats(statsWithMmr, 51000);
-	// console.log('comparing', JSON.stringify(statsWithMmr).length, base64data.length);
 
 	const userName = input.userName ? `'${input.userName}'` : 'NULL';
 	const heroCardId = input.heroCardId ? `'${input.heroCardId}'` : 'NULL';
@@ -93,10 +83,8 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, mysqlBgs: Serv
 			)
 		`,
 	);
-	console.log('insertion result', dbResults);
 
 	if (input.userId) {
-		console.log('will handle user query', input.userId);
 		const userSelectQuery = `
 					SELECT DISTINCT userId FROM user_mapping
 					INNER JOIN (
@@ -109,18 +97,14 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, mysqlBgs: Serv
 					) AS x ON x.username = user_mapping.username
 					UNION ALL SELECT '${input.userId}'
 				`;
-		console.log('user select query', userSelectQuery);
 		const userIds: any[] = await mysql.query(userSelectQuery);
-		console.log('got userIds', userIds);
 
 		// Load existing stats
 		const query = `
 			SELECT * FROM bgs_user_best_stats
 			WHERE userId IN (${userIds.map(result => "'" + result.userId + "'").join(',')})
 		`;
-		console.log('selecting existing stats', query);
 		const existingStats: BgsBestStat[] = await mysqlBgs.query(query);
-		console.log('got existing stats', existingStats);
 
 		const today = toCreationDate(new Date());
 		const newStats: readonly BgsBestStat[] = buildNewStats(existingStats, postMatchStats, input, today);
@@ -149,19 +133,15 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, mysqlBgs: Serv
 					`,
 		);
 		const allQueries = [createQuery, ...updateQueries].filter(query => query);
-		console.log('updating stats', allQueries);
 		await Promise.all(allQueries.map(query => mysqlBgs.query(query)));
-		console.log('stats updated');
 		statsWithMmr.updatedBestValues = newStats;
 	}
 };
 
 const compressStats = (postMatchStats: BgsPostMatchStats, maxLength: number): string => {
 	const compressedStats = deflate(JSON.stringify(postMatchStats), { to: 'string' });
-	console.log('compressedStats');
 	const buff = Buffer.from(compressedStats, 'utf8');
 	const base64data = buff.toString('base64');
-	console.log('base64data', base64data.length);
 	if (base64data.length < maxLength) {
 		return base64data;
 	}
@@ -175,10 +155,8 @@ const compressStats = (postMatchStats: BgsPostMatchStats, maxLength: number): st
 		boardHistory: boardWithOnlyLastTurn,
 	};
 	const compressedTruncatedStats = deflate(JSON.stringify(truncatedStats), { to: 'string' });
-	console.log('compressedTruncatedStats');
 	const buffTruncated = Buffer.from(compressedTruncatedStats, 'utf8');
 	const base64dataTruncated = buffTruncated.toString('base64');
-	console.log('base64data', base64dataTruncated.length);
 	return base64dataTruncated;
 };
 
@@ -204,7 +182,6 @@ const loadReviewInternal = async (reviewId: string, mysql: ServerlessMysql, call
 		WHERE reviewId = '${reviewId}'
 	`,
 	);
-	console.log('dbResults', dbResults);
 	const review = dbResults && dbResults.length > 0 ? dbResults[0] : null;
 	if (!review) {
 		setTimeout(() => loadReviewInternal(reviewId, mysql, callback, retriesLeft - 1), 1000);
@@ -220,7 +197,6 @@ const loadReplayString = async (replayKey: string): Promise<string> => {
 };
 
 const loadReplayStringInternal = async (replayKey: string, callback, retriesLeft = 15): Promise<string> => {
-	// console.log('in replay string internal', retriesLeft);
 	if (retriesLeft <= 0) {
 		console.error('Could not load replay xml', replayKey);
 		callback(null);
@@ -230,7 +206,6 @@ const loadReplayStringInternal = async (replayKey: string, callback, retriesLeft
 		? await s3.readZippedContent('xml.firestoneapp.com', replayKey)
 		: await s3.readContentAsString('xml.firestoneapp.com', replayKey);
 	// const data = await http(`https://s3-us-west-2.amazonaws.com/xml.firestoneapp.com/${replayKey}`);
-	console.log('xml data length', data.length);
 	// If there is nothing, we get the S3 "no key found" error
 	if (!data || data.length < 5000) {
 		setTimeout(() => loadReplayStringInternal(replayKey, callback, retriesLeft - 1), 500);

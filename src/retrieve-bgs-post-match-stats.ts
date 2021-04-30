@@ -8,7 +8,6 @@ export default async (event): Promise<any> => {
 	const input: Input = JSON.parse(event.body);
 
 	const query = buildQuery(input);
-	console.log('running query', query);
 
 	const mysql = await getConnectionBgs();
 	const results: any[] = ((await mysql.query(query)) as any[])
@@ -21,7 +20,6 @@ export default async (event): Promise<any> => {
 			};
 		})
 		.filter(result => result.stats);
-	console.log('results', results);
 	await mysql.end();
 
 	const zipped = await zip(JSON.stringify(results));
@@ -34,7 +32,6 @@ export default async (event): Promise<any> => {
 			'Content-Encoding': 'gzip',
 		},
 	};
-	console.log('sending back success reponse');
 	return response;
 };
 
@@ -64,15 +61,11 @@ const zip = async (input: string) => {
 const parseStats = (inputStats: string): string => {
 	try {
 		const parsed = JSON.parse(inputStats);
-		// console.log('parsed', parsed);
 		return parsed;
 	} catch (e) {
 		try {
-			// console.log('reading base64', inputStats);
 			const fromBase64 = Buffer.from(inputStats, 'base64').toString();
-			// console.log('fromBase64', fromBase64);
 			const inflated = inflate(fromBase64, { to: 'string' });
-			// console.log('inflated', inflated);
 			return JSON.parse(inflated);
 		} catch (e) {
 			console.warn('Could not build full stats, ignoring review', inputStats);
