@@ -35,6 +35,14 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, mysqlBgs: Serv
 	const debug = input.userName === 'daedin';
 
 	const review = await loadReview(input.reviewId, mysql);
+	if (!review) {
+		// We log the error, and acknowledge.
+		// The idea is to not corrupt the reporting with the occasional glitch that happens when
+		// saving a review
+		console.error('could not load review', input.reviewId);
+		return;
+	}
+
 	const replayKey = review.replayKey;
 	const replayXml = await loadReplayString(replayKey);
 
