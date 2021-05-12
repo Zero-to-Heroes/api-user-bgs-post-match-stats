@@ -5,11 +5,13 @@ import { ServerlessMysql } from 'serverless-mysql';
 import { getConnection } from './db/rds';
 import { getConnection as getConnectionBgs } from './db/rds-bgs';
 import { S3 } from './db/s3';
+import { Sns } from './db/sns';
 import { BgsBestStat } from './model/bgs-best-stat';
 import { Input } from './sqs-event';
 import { buildNewStats } from './stats-builder';
 
 const s3 = new S3();
+const sns = new Sns();
 
 export default async (event, context): Promise<any> => {
 	const events: readonly Input[] = (event.Records as any[])
@@ -57,8 +59,6 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, mysqlBgs: Serv
 		return;
 	}
 
-	if (debug) {
-	}
 	const oldMmr = input.oldMmr;
 	const newMmr = input.newMmr;
 
@@ -144,6 +144,27 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, mysqlBgs: Serv
 		await Promise.all(allQueries.map(query => mysqlBgs.query(query)));
 		statsWithMmr.updatedBestValues = newStats;
 	}
+
+	if (isPerfectGame(review, postMatchStats)) {
+		await sns.notifyBgPerfectGame(review);
+	}
+};
+
+const isPerfectGame = (review: any, postMatchStats: BgsPostMatchStats): boolean => {
+	if (!review.additionalResult || parseInt(review.additionalResult) !== 1) {
+		return false;
+	}
+
+	const mainPlayerCardId = review.playerCardId;
+	const mainPlayerHpOverTurn = postMatchStats.hpOverTurn[mainPlayerCardId];
+	// Let's use 8 turns as a minimum to be considered a perfect game
+	if (!mainPlayerHpOverTurn?.length || mainPlayerHpOverTurn.length < 8) {
+		return false;
+	}
+
+	const startingHp = mainPlayerHpOverTurn[0].value;
+	const endHp = mainPlayerHpOverTurn[mainPlayerHpOverTurn.length - 1].value;
+	return endHp === startingHp;
 };
 
 const compressStats = (postMatchStats: BgsPostMatchStats, maxLength: number): string => {
