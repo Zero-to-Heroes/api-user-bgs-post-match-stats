@@ -2,6 +2,7 @@
 import { BgsPostMatchStats, parseBattlegroundsGame } from '@firestone-hs/hs-replay-xml-parser/dist/public-api';
 import { deflate } from 'pako';
 import { ServerlessMysql } from 'serverless-mysql';
+import SqlString from 'sqlstring';
 import { getConnection } from './db/rds';
 import { getConnection as getConnectionBgs } from './db/rds-bgs';
 import { S3 } from './db/s3';
@@ -146,7 +147,16 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, mysqlBgs: Serv
 	}
 
 	if (isPerfectGame(review, postMatchStats)) {
+		// const reviewWithAllData = await loadReview(review.reviewId, mysql, true);
 		await sns.notifyBgPerfectGame(review);
+		const query = `
+			UPDATE replay_summary
+			SET bgsPerfectGame = 1
+			WHERE reviewId = ${SqlString.escape(review.reviewId)}
+		`;
+		console.log('running query', query);
+		const result = await mysql.query(query);
+		console.log('result', result);
 	}
 };
 
