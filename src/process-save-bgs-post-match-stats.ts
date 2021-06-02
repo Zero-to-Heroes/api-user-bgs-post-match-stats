@@ -68,7 +68,7 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, mysqlBgs: Serv
 		oldMmr: oldMmr,
 		newMmr: newMmr,
 	};
-	const compressedStats: string = compressStats(statsWithMmr, 51000);
+	const compressedStats: string = compressPostMatchStats(statsWithMmr, 51000);
 
 	const userName = input.userName ? `'${input.userName}'` : 'NULL';
 	const heroCardId = input.heroCardId ? `'${input.heroCardId}'` : 'NULL';
@@ -146,8 +146,21 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, mysqlBgs: Serv
 		statsWithMmr.updatedBestValues = newStats;
 	}
 
+	const compressedFinalBoard = postMatchStats.boardHistory?.length
+		? compressStats(postMatchStats.boardHistory[postMatchStats.boardHistory.length - 1])
+		: null;
+	if (compressedFinalBoard) {
+		const query = `
+			UPDATE replay_summary
+			SET finalComp = ${SqlString.escape(compressedFinalBoard)}
+			WHERE reviewId = ${SqlString.escape(review.reviewId)}
+		`;
+		console.log('running query', query);
+		const result = await mysql.query(query);
+		console.log('result', result);
+	}
+
 	if (isPerfectGame(review, postMatchStats)) {
-		// const reviewWithAllData = await loadReview(review.reviewId, mysql, true);
 		await sns.notifyBgPerfectGame(review);
 		const query = `
 			UPDATE replay_summary
@@ -177,10 +190,8 @@ const isPerfectGame = (review: any, postMatchStats: BgsPostMatchStats): boolean 
 	return endHp === startingHp;
 };
 
-const compressStats = (postMatchStats: BgsPostMatchStats, maxLength: number): string => {
-	const compressedStats = deflate(JSON.stringify(postMatchStats), { to: 'string' });
-	const buff = Buffer.from(compressedStats, 'utf8');
-	const base64data = buff.toString('base64');
+const compressPostMatchStats = (postMatchStats: BgsPostMatchStats, maxLength: number): string => {
+	const base64data = compressStats(postMatchStats);
 	if (base64data.length < maxLength) {
 		return base64data;
 	}
@@ -197,6 +208,13 @@ const compressStats = (postMatchStats: BgsPostMatchStats, maxLength: number): st
 	const buffTruncated = Buffer.from(compressedTruncatedStats, 'utf8');
 	const base64dataTruncated = buffTruncated.toString('base64');
 	return base64dataTruncated;
+};
+
+const compressStats = (stats: any): string => {
+	const compressedStats = deflate(JSON.stringify(stats), { to: 'string' });
+	const buff = Buffer.from(compressedStats, 'utf8');
+	const base64data = buff.toString('base64');
+	return base64data;
 };
 
 const toStatCreationLine = (stat: BgsBestStat, today: string): string => {
