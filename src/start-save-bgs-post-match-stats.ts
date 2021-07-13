@@ -5,6 +5,7 @@ const sqs = new Sqs();
 
 export default async (event): Promise<any> => {
 	const input: Input = JSON.parse(event.body);
+	console.log('processing review', input.reviewId);
 	await sqs.sendMessageToQueue(input, process.env.SQS_URL);
 	return { statusCode: 200, body: '' };
 };

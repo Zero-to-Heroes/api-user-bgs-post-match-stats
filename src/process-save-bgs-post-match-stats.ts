@@ -36,8 +36,10 @@ export default async (event, context): Promise<any> => {
 
 const processEvent = async (input: Input, mysql: ServerlessMysql, mysqlBgs: ServerlessMysql) => {
 	const debug = input.userName === 'daedin';
+	console.log('processing review', input.reviewId);
 
 	const review = await loadReview(input.reviewId, mysql);
+	console.log('loaded review', input.reviewId);
 	if (!review) {
 		// We log the error, and acknowledge.
 		// The idea is to not corrupt the reporting with the occasional glitch that happens when
@@ -48,6 +50,7 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, mysqlBgs: Serv
 
 	const replayKey = review.replayKey;
 	const replayXml = await loadReplayString(replayKey);
+	console.log('loaded replayXml', input.reviewId);
 
 	const postMatchStats = parseBattlegroundsGame(
 		replayXml,
@@ -55,8 +58,9 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, mysqlBgs: Serv
 		input.battleResultHistory,
 		input.faceOffs,
 	);
+	console.log('parsed battlegrounds game', input.mainPlayer, input.battleResultHistory, input.faceOffs);
 	if (!postMatchStats) {
-		console.error('Could not parse post-match stats');
+		console.error('Could not parse post-match stats', input.reviewId);
 		return;
 	}
 
@@ -72,26 +76,26 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, mysqlBgs: Serv
 
 	const userName = input.userName ? `'${input.userName}'` : 'NULL';
 	const heroCardId = input.heroCardId ? `'${input.heroCardId}'` : 'NULL';
-	const dbResults: any[] = await mysqlBgs.query(
-		`
-			INSERT IGNORE INTO bgs_single_run_stats
-			(
-				reviewId,
-				jsonStats,
-				userId,
-				userName,
-				heroCardId
-			)
-			VALUES
-			(
-				'${input.reviewId}',
-				'${compressedStats}',
-				'${input.userId}',
-				${userName},
-				${heroCardId}
-			)
-		`,
-	);
+	const query = `
+		INSERT IGNORE INTO bgs_single_run_stats
+		(
+			reviewId,
+			jsonStats,
+			userId,
+			userName,
+			heroCardId
+		)
+		VALUES
+		(
+			${SqlString.escape(input.reviewId)},
+			'${compressedStats}',
+			${SqlString.escape(input.userId)},
+			${userName},
+			${heroCardId}
+		)
+	`;
+	console.log('running query', query);
+	const dbResults: any[] = await mysqlBgs.query(query);
 
 	if (input.userId) {
 		const userSelectQuery = `
