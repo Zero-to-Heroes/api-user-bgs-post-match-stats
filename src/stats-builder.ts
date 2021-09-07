@@ -18,13 +18,13 @@ const statsConfig: { [statName: string]: (postMatchStats: BgsPostMatchStats, inp
 			.reduce((a, b) => a + b, 0),
 	totalDamageDealtToHeroes: (postMatchStats: BgsPostMatchStats, input: Input): number =>
 		postMatchStats.damageToEnemyHeroOverTurn
-			.filter(info => info.value.enemyHeroCardId !== CardIds.NonCollectible.Neutral.KelthuzadTavernBrawl2)
+			.filter(info => info.value.enemyHeroCardId !== CardIds.NonCollectible.Neutral.KelthuzadBattlegrounds)
 			.map(info => (info.value.value != null ? info.value.value : ((info.value as any) as number))) // For backward compatibility
 			.reduce((a, b) => a + b, 0),
 	maxDamageDealtToHero: (postMatchStats: BgsPostMatchStats, input: Input): number =>
 		Math.max(
 			...postMatchStats.damageToEnemyHeroOverTurn
-				.filter(info => info.value.enemyHeroCardId !== CardIds.NonCollectible.Neutral.KelthuzadTavernBrawl2)
+				.filter(info => info.value.enemyHeroCardId !== CardIds.NonCollectible.Neutral.KelthuzadBattlegrounds)
 				.map(info => (info.value.value != null ? info.value.value : ((info.value as any) as number))), // For backward compatibility
 		),
 	highestWinStreak: (postMatchStats: BgsPostMatchStats, input: Input): number => input.mainPlayer?.highestWinStreak,
@@ -35,7 +35,7 @@ const statsConfig: { [statName: string]: (postMatchStats: BgsPostMatchStats, inp
 		postMatchStats.coinsWastedOverTurn.map(value => value.value).reduce((a, b) => a + b, 0),
 	rerolls: (postMatchStats: BgsPostMatchStats, input: Input): number => {
 		const rerolls = postMatchStats.rerollsOverTurn.map(value => value.value).reduce((a, b) => a + b, 0);
-		return input.mainPlayer?.cardId === CardIds.NonCollectible.Neutral.InfiniteTokiTavernBrawl
+		return input.mainPlayer?.cardId === CardIds.NonCollectible.Neutral.InfiniteTokiBattlegrounds
 			? rerolls - postMatchStats.mainPlayerHeroPowersOverTurn.map(value => value.value).reduce((a, b) => a + b, 0)
 			: rerolls;
 	},

@@ -175,6 +175,22 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, mysqlBgs: Serv
 		const result = await mysql.query(query);
 		console.log('result', result);
 	}
+
+	// And update the bgs_run_stats table
+	const winrates = postMatchStats.battleResultHistory.map(info => ({
+		turn: info.turn,
+		winrate: info.simulationResult.wonPercent,
+	}));
+	if (winrates.length) {
+		const query = `
+			UPDATE bgs_run_stats
+			SET combatWinrate = ${SqlString.escape(JSON.stringify(winrates))}
+			WHERE reviewId = ${SqlString.escape(review.reviewId)}
+		`;
+		console.log('running query', query);
+		const result = await mysql.query(query);
+		console.log('result', result);
+	}
 };
 
 const isPerfectGame = (review: any, postMatchStats: BgsPostMatchStats): boolean => {
