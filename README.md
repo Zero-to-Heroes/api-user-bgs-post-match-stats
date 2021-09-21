@@ -8,6 +8,8 @@ npm run build && sam local start-api
 
 ```
 npm run build && npm run package && npm run deploy
+
+rm -rf dist && tsc && rm -rf dist/node_modules && npm publish --access public
 ```
 
 # Reference

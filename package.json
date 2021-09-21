@@ -1,6 +1,6 @@
 {
-	"name": "@firestone-hs/api-user-bgs-post-match-stats",
-	"version": "1.0.0",
+	"name": "@firestone-hs/user-bgs-post-match-stats",
+	"version": "1.0.3",
 	"description": "",
 	"scripts": {
 		"lint": "eslint --color --fix --ext .ts .",
@@ -14,9 +14,15 @@
 	"repository": {},
 	"author": "",
 	"license": "MIT",
-	"private": true,
+	"private": false,
+	"main": "dist/public-api.js",
+	"types": "dist/public-api.d.ts",
+	"files": [
+		"dist/**/*"
+	],
 	"dependencies": {
 		"@firestone-hs/hs-replay-xml-parser": "0.0.79",
+		"@firestone-hs/reference-data": "^0.1.150",
 		"aws-sdk": "^2.888.0",
 		"cross-fetch": "^3.1.4",
 		"jszip": "^3.7.1",
