@@ -48,9 +48,19 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, mysqlBgs: Serv
 		return;
 	}
 
+	const gameMode = review.gameMode;
+	if (gameMode !== 'battlesgrounds') {
+		console.log('invalid non-BG review received', review);
+		return;
+	}
+
 	const replayKey = review.replayKey;
 	const replayXml = await loadReplayString(replayKey);
-	console.log('loaded replayXml', input.reviewId);
+	console.log('loaded replayXml', replayXml?.length);
+	if (!replayXml?.length) {
+		console.log('invalid replay');
+		return;
+	}
 
 	const postMatchStats = parseBattlegroundsGame(
 		replayXml,
@@ -121,8 +131,12 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, mysqlBgs: Serv
 
 		const today = toCreationDate(new Date());
 		const newStats: readonly BgsBestStat[] = buildNewStats(existingStats, postMatchStats, input, today);
-		const statsToCreate = newStats.filter(stat => !stat.id);
-		const statsToUpdate = newStats.filter(stat => stat.id);
+		const statsToCreate = newStats
+			.filter(stat => !stat.id)
+			.filter(stat => !isNaN(stat.value) && isFinite(stat.value));
+		const statsToUpdate = newStats
+			.filter(stat => stat.id)
+			.filter(stat => !isNaN(stat.value) && isFinite(stat.value));
 
 		const createQuery =
 			statsToCreate.length > 0
@@ -238,7 +252,13 @@ const compressStats = (stats: any): string => {
 };
 
 const toStatCreationLine = (stat: BgsBestStat, today: string): string => {
-	return `('${stat.userId}', '${stat.statName}', ${stat.value}, '${today}', '${stat.reviewId}')`;
+	return `(
+		${SqlString.escape(stat.userId)}, 
+		${SqlString.escape(stat.statName)}, 
+		${SqlString.escape(stat.value)}, 
+		${SqlString.escape(today)}, 
+		${SqlString.escape(stat.reviewId)}
+	)`;
 };
 
 const loadReview = async (reviewId: string, mysql: ServerlessMysql) => {
