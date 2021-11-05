@@ -49,7 +49,7 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, mysqlBgs: Serv
 	}
 
 	const gameMode = review.gameMode;
-	if (gameMode !== 'battlesgrounds') {
+	if (gameMode !== 'battlegrounds') {
 		console.log('invalid non-BG review received', review);
 		return;
 	}
@@ -195,6 +195,7 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, mysqlBgs: Serv
 		turn: info.turn,
 		winrate: info.simulationResult.wonPercent,
 	}));
+	console.log('winrates', review.reviewId, winrates?.length);
 	if (winrates.length) {
 		const query = `
 			UPDATE bgs_run_stats
@@ -204,10 +205,12 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, mysqlBgs: Serv
 		console.log('running query', query);
 		const result = await mysql.query(query);
 		console.log('result', result);
+	} else {
+		console.log('no winrates', review.reviewId, winrates, postMatchStats.battleResultHistory);
 	}
 };
 
-const isPerfectGame = (review: any, postMatchStats: BgsPostMatchStats): boolean => {
+export const isPerfectGame = (review: any, postMatchStats: BgsPostMatchStats): boolean => {
 	if (!review.additionalResult || parseInt(review.additionalResult) !== 1) {
 		return false;
 	}
