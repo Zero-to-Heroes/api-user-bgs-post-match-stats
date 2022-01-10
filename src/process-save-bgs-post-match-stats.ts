@@ -233,6 +233,7 @@ const compressPostMatchStats = (postMatchStats: BgsPostMatchStats, maxLength: nu
 		return base64data;
 	}
 
+	console.warn('stats too big, compressing', base64data.length);
 	const boardWithOnlyLastTurn =
 		postMatchStats.boardHistory && postMatchStats.boardHistory.length > 0
 			? [postMatchStats.boardHistory[postMatchStats.boardHistory.length - 1]]
