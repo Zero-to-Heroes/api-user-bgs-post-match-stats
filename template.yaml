@@ -79,7 +79,7 @@ Resources:
             Handler: process-save-bgs-post-match-stats.default
             Runtime: nodejs10.x
             CodeUri: ./dist/process-save-bgs-post-match-stats
-            MemorySize: 448
+            MemorySize: 620
             ReservedConcurrentExecutions: 10
             Policies:
                 - AWSLambdaVPCAccessExecutionRole
