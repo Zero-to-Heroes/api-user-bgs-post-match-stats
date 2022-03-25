@@ -74,6 +74,8 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, mysqlBgs: Serv
 		return;
 	}
 
+	console.log('warband stats', input.reviewId, postMatchStats.totalStatsOverTurn);
+
 	const oldMmr = input.oldMmr;
 	const newMmr = input.newMmr;
 

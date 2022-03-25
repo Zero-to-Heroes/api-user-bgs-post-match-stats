@@ -33,7 +33,7 @@ Resources:
         Type: AWS::Serverless::Function
         Properties:
             Handler: retrieve-bgs-post-match-stats.default
-            Runtime: nodejs10.x
+            Runtime: nodejs12.x
             Timeout: 15
             MemorySize: 128
             CodeUri: ./dist/retrieve-bgs-post-match-stats
@@ -55,7 +55,7 @@ Resources:
         Type: AWS::Serverless::Function
         Properties:
             Handler: start-save-bgs-post-match-stats.default
-            Runtime: nodejs10.x
+            Runtime: nodejs12.x
             Timeout: 3
             MemorySize: 128
             CodeUri: ./dist/start-save-bgs-post-match-stats
@@ -77,7 +77,7 @@ Resources:
         Type: AWS::Serverless::Function
         Properties:
             Handler: process-save-bgs-post-match-stats.default
-            Runtime: nodejs10.x
+            Runtime: nodejs12.x
             CodeUri: ./dist/process-save-bgs-post-match-stats
             MemorySize: 620
             ReservedConcurrentExecutions: 10
