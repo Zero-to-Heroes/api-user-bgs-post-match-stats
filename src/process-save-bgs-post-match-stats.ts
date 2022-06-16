@@ -129,7 +129,10 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, mysqlBgs: Serv
 			SELECT * FROM bgs_user_best_stats
 			WHERE userId IN (${userIds.map(result => "'" + result.userId + "'").join(',')})
 		`;
-		const existingStats: BgsBestStat[] = await mysqlBgs.query(query);
+		let existingStats: BgsBestStat[] = await mysql.query(query);
+		if (!existingStats.length) {
+			existingStats = await mysqlBgs.query(query);
+		}
 
 		const today = toCreationDate(new Date());
 		const newStats: readonly BgsBestStat[] = buildNewStats(existingStats, postMatchStats, input, today);
@@ -162,7 +165,8 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, mysqlBgs: Serv
 					`,
 		);
 		const allQueries = [createQuery, ...updateQueries].filter(query => query);
-		await Promise.all(allQueries.map(query => mysqlBgs.query(query)));
+		await Promise.all(allQueries.map(query => mysql.query(query)));
+		// await Promise.all(allQueries.map(query => mysqlBgs.query(query)));
 		statsWithMmr.updatedBestValues = newStats;
 	}
 
