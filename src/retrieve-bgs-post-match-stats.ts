@@ -1,17 +1,18 @@
+import { getConnection, logBeforeTimeout, logger } from '@firestone-hs/aws-lambda-utils';
 import { inflate } from 'pako';
 import SqlString from 'sqlstring';
 import { gzipSync } from 'zlib';
-import { getConnection } from './db/rds';
-import { getConnection as getConnectionBgs } from './db/rds-bgs';
 import { Input } from './sqs-event';
 
-export default async (event): Promise<any> => {
+export default async (event, context): Promise<any> => {
+	const cleanup = logBeforeTimeout(context);
 	const input: Input = JSON.parse(event.body);
 	if (input.reviewId) {
-		return await handleSinglReviewRetrieve(input);
+		await handleSinglReviewRetrieve(input);
 	} else {
-		return await handleMultiReviewsRetrieve(input);
+		await handleMultiReviewsRetrieve(input);
 	}
+	cleanup();
 };
 
 const handleSinglReviewRetrieve = async (input: Input): Promise<any> => {
@@ -20,17 +21,16 @@ const handleSinglReviewRetrieve = async (input: Input): Promise<any> => {
 		SELECT * FROM bgs_single_run_stats
 		WHERE reviewId = ${escape(input.reviewId)}
 	`;
-	const mysqlBgs = await getConnectionBgs();
-	let rawResults: any[] = (await mysqlBgs.query(query)) as any[];
+	const mysql = await getConnection();
+	let rawResults: any[] = (await mysql.query(query)) as any[];
 	if (!rawResults.length) {
 		const pgQuery = `
 			SELECT * FROM bgs_perfect_game
 			WHERE reviewId = ${escape(input.reviewId)}
 		`;
-		const mysql = await getConnection();
 		const pgResults: any[] = (await mysql.query(pgQuery)) as any[];
 		if (!pgResults.length) {
-			console.error('No post match info for review', input);
+			logger.error('No post match info for review', input);
 			return {
 				statusCode: 404,
 			};
@@ -41,7 +41,7 @@ const handleSinglReviewRetrieve = async (input: Input): Promise<any> => {
 			SELECT * FROM bgs_single_run_stats
 			WHERE reviewId = ${escape(originalReviewId)}
 		`;
-		rawResults = (await mysqlBgs.query(query)) as any[];
+		rawResults = (await mysql.query(query)) as any[];
 	}
 
 	const results: any[] = rawResults
@@ -56,7 +56,7 @@ const handleSinglReviewRetrieve = async (input: Input): Promise<any> => {
 			};
 		})
 		.filter(result => result.stats);
-	await mysqlBgs.end();
+	await mysql.end();
 
 	const zipped = await zip(JSON.stringify(results));
 	const response = {
@@ -82,7 +82,7 @@ const handleMultiReviewsRetrieve = async (input: Input): Promise<any> => {
 		ORDER BY id DESC
 	`;
 
-	const mysql = await getConnectionBgs();
+	const mysql = await getConnection();
 	const rawResults: any[] = (await mysql.query(query)) as any[];
 
 	const results: any[] = rawResults
@@ -124,7 +124,7 @@ const parseStats = (inputStats: string): string => {
 			const inflated = inflate(fromBase64, { to: 'string' });
 			return JSON.parse(inflated);
 		} catch (e) {
-			console.warn('Could not build full stats, ignoring review', inputStats);
+			logger.warn('Could not build full stats, ignoring review', inputStats);
 			return null;
 		}
 	}

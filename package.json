@@ -21,6 +21,7 @@
 		"dist/**/*"
 	],
 	"dependencies": {
+		"@firestone-hs/aws-lambda-utils": "0.0.4",
 		"@firestone-hs/hs-replay-xml-parser": "0.0.95",
 		"@firestone-hs/reference-data": "^0.1.196",
 		"aws-sdk": "^2.888.0",

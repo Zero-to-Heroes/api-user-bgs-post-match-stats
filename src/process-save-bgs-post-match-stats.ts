@@ -1,12 +1,9 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
+import { getConnection, logBeforeTimeout, logger, S3, Sns } from '@firestone-hs/aws-lambda-utils';
 import { BgsPostMatchStats, parseBattlegroundsGame } from '@firestone-hs/hs-replay-xml-parser/dist/public-api';
 import { deflate } from 'pako';
 import { ServerlessMysql } from 'serverless-mysql';
 import SqlString from 'sqlstring';
-import { getConnection } from './db/rds';
-import { getConnection as getConnectionBgs } from './db/rds-bgs';
-import { S3 } from './db/s3';
-import { Sns } from './db/sns';
 import { BgsBestStat } from './model/bgs-best-stat';
 import { Input } from './sqs-event';
 import { buildNewStats } from './stats-builder';
@@ -15,14 +12,14 @@ const s3 = new S3();
 const sns = new Sns();
 
 export default async (event, context): Promise<any> => {
+	const cleanup = logBeforeTimeout(context);
 	const events: readonly Input[] = (event.Records as any[])
 		.map(event => JSON.parse(event.body))
 		.reduce((a, b) => a.concat(b), [])
 		.filter(event => event);
 	const mysql = await getConnection();
-	const mysqlBgs = await getConnectionBgs();
 	for (const ev of events) {
-		await processEvent(ev, mysql, mysqlBgs);
+		await processEvent(ev, mysql);
 	}
 	const response = {
 		statusCode: 200,
@@ -30,35 +27,34 @@ export default async (event, context): Promise<any> => {
 		body: null,
 	};
 	await mysql.end();
-	await mysqlBgs.end();
+	cleanup();
 	return response;
 };
 
-const processEvent = async (input: Input, mysql: ServerlessMysql, mysqlBgs: ServerlessMysql) => {
-	const debug = input.userName === 'daedin';
-	console.log('processing review', input.reviewId);
+const processEvent = async (input: Input, mysql: ServerlessMysql) => {
+	logger.debug('processing review', input.reviewId);
 
 	const review = await loadReview(input.reviewId, mysql);
-	console.log('loaded review', input.reviewId);
+	logger.debug('loaded review', input.reviewId);
 	if (!review) {
 		// We log the error, and acknowledge.
 		// The idea is to not corrupt the reporting with the occasional glitch that happens when
 		// saving a review
-		console.error('could not load review', input.reviewId);
+		logger.error('could not load review', input.reviewId);
 		return;
 	}
 
 	const gameMode = review.gameMode;
 	if (gameMode !== 'battlegrounds') {
-		console.log('invalid non-BG review received', review);
+		logger.debug('invalid non-BG review received', review);
 		return;
 	}
 
 	const replayKey = review.replayKey;
 	const replayXml = await loadReplayString(replayKey);
-	console.log('loaded replayXml', replayXml?.length);
+	logger.debug('loaded replayXml', replayXml?.length);
 	if (!replayXml?.length) {
-		console.log('invalid replay');
+		logger.debug('invalid replay');
 		return;
 	}
 
@@ -68,13 +64,13 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, mysqlBgs: Serv
 		input.battleResultHistory,
 		input.faceOffs,
 	);
-	console.log('parsed battlegrounds game', input.mainPlayer, input.battleResultHistory, input.faceOffs);
+	logger.debug('parsed battlegrounds game', input.mainPlayer, input.battleResultHistory, input.faceOffs);
 	if (!postMatchStats) {
-		console.error('Could not parse post-match stats', input.reviewId);
+		logger.error('Could not parse post-match stats', input.reviewId);
 		return;
 	}
 
-	console.log('warband stats', input.reviewId, postMatchStats.totalStatsOverTurn);
+	logger.debug('warband stats', input.reviewId, postMatchStats.totalStatsOverTurn);
 
 	const oldMmr = input.oldMmr;
 	const newMmr = input.newMmr;
@@ -106,8 +102,9 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, mysqlBgs: Serv
 			${heroCardId}
 		)
 	`;
-	console.log('running query', query);
-	const dbResults: any[] = await mysqlBgs.query(query);
+	logger.debug('running query', query);
+	const dbResults: any[] = await mysql.query(query);
+	// const dbResults: any[] = await mysqlBgs.query(query);
 
 	if (input.userId) {
 		const userSelectQuery = `
@@ -129,10 +126,7 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, mysqlBgs: Serv
 			SELECT * FROM bgs_user_best_stats
 			WHERE userId IN (${userIds.map(result => "'" + result.userId + "'").join(',')})
 		`;
-		let existingStats: BgsBestStat[] = await mysql.query(query);
-		if (!existingStats.length) {
-			existingStats = await mysqlBgs.query(query);
-		}
+		const existingStats: BgsBestStat[] = await mysql.query(query);
 
 		const today = toCreationDate(new Date());
 		const newStats: readonly BgsBestStat[] = buildNewStats(existingStats, postMatchStats, input, today);
@@ -179,9 +173,9 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, mysqlBgs: Serv
 			SET finalComp = ${SqlString.escape(compressedFinalBoard)}
 			WHERE reviewId = ${SqlString.escape(review.reviewId)}
 		`;
-		console.log('running query', query);
+		logger.debug('running query', query);
 		const result = await mysql.query(query);
-		console.log('result', result);
+		logger.debug('result', result);
 	}
 
 	if (isPerfectGame(review, postMatchStats)) {
@@ -191,9 +185,9 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, mysqlBgs: Serv
 			SET bgsPerfectGame = 1
 			WHERE reviewId = ${SqlString.escape(review.reviewId)}
 		`;
-		console.log('running query', query);
+		logger.debug('running query', query);
 		const result = await mysql.query(query);
-		console.log('result', result);
+		logger.debug('result', result);
 	}
 
 	// And update the bgs_run_stats table
@@ -201,18 +195,18 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, mysqlBgs: Serv
 		turn: info.turn,
 		winrate: info.simulationResult.wonPercent,
 	}));
-	console.log('winrates', review.reviewId, winrates?.length);
+	logger.debug('winrates', review.reviewId, winrates?.length);
 	if (winrates.length) {
 		const query = `
 			UPDATE bgs_run_stats
 			SET combatWinrate = ${SqlString.escape(JSON.stringify(winrates))}
 			WHERE reviewId = ${SqlString.escape(review.reviewId)}
 		`;
-		console.log('running query', query);
+		logger.debug('running query', query);
 		const result = await mysql.query(query);
-		console.log('result', result);
+		logger.debug('result', result);
 	} else {
-		console.log('no winrates', review.reviewId, winrates, postMatchStats.battleResultHistory);
+		logger.debug('no winrates', review.reviewId, winrates, postMatchStats.battleResultHistory);
 	}
 };
 
@@ -239,7 +233,7 @@ const compressPostMatchStats = (postMatchStats: BgsPostMatchStats, maxLength: nu
 		return base64data;
 	}
 
-	console.warn('stats too big, compressing', base64data.length);
+	logger.warn('stats too big, compressing', base64data.length);
 	const boardWithOnlyLastTurn =
 		postMatchStats.boardHistory && postMatchStats.boardHistory.length > 0
 			? [postMatchStats.boardHistory[postMatchStats.boardHistory.length - 1]]
@@ -279,7 +273,7 @@ const loadReview = async (reviewId: string, mysql: ServerlessMysql) => {
 
 const loadReviewInternal = async (reviewId: string, mysql: ServerlessMysql, callback, retriesLeft = 15) => {
 	if (retriesLeft <= 0) {
-		console.error('Could not load review', reviewId);
+		logger.error('Could not load review', reviewId);
 		callback(null);
 		return;
 	}
@@ -305,7 +299,7 @@ const loadReplayString = async (replayKey: string): Promise<string> => {
 
 const loadReplayStringInternal = async (replayKey: string, callback, retriesLeft = 15): Promise<string> => {
 	if (retriesLeft <= 0) {
-		console.error('Could not load replay xml', replayKey);
+		logger.error('Could not load replay xml', replayKey);
 		callback(null);
 		return;
 	}
