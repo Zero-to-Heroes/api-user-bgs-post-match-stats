@@ -7,12 +7,9 @@ import { Input } from './sqs-event';
 export default async (event, context): Promise<any> => {
 	const cleanup = logBeforeTimeout(context);
 	const input: Input = JSON.parse(event.body);
-	if (input.reviewId) {
-		await handleSinglReviewRetrieve(input);
-	} else {
-		await handleMultiReviewsRetrieve(input);
-	}
+	const result = input.reviewId ? await handleSinglReviewRetrieve(input) : await handleMultiReviewsRetrieve(input);
 	cleanup();
+	return result;
 };
 
 const handleSinglReviewRetrieve = async (input: Input): Promise<any> => {
