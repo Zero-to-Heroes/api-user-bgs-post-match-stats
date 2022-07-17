@@ -297,19 +297,15 @@ const loadReplayString = async (replayKey: string): Promise<string> => {
 	});
 };
 
-const loadReplayStringInternal = async (replayKey: string, callback, retriesLeft = 15): Promise<string> => {
-	if (retriesLeft <= 0) {
-		logger.error('Could not load replay xml', replayKey);
-		callback(null);
-		return;
-	}
+const loadReplayStringInternal = async (replayKey: string, callback): Promise<string> => {
 	const data = replayKey.endsWith('.zip')
 		? await s3.readZippedContent('xml.firestoneapp.com', replayKey)
 		: await s3.readContentAsString('xml.firestoneapp.com', replayKey);
 	// const data = await http(`https://s3-us-west-2.amazonaws.com/xml.firestoneapp.com/${replayKey}`);
 	// If there is nothing, we get the S3 "no key found" error
 	if (!data || data.length < 5000) {
-		setTimeout(() => loadReplayStringInternal(replayKey, callback, retriesLeft - 1), 500);
+		logger.error('Could not load replay xml', replayKey, data);
+		callback(null);
 		return;
 	}
 	callback(data);
