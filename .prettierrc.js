@@ -1,9 +1,10 @@
 module.exports = {
+	parser: 'typescript',
 	semi: true,
 	trailingComma: 'all',
 	singleQuote: true,
+	printWidth: 120,
 	tabWidth: 4,
 	useTabs: true,
-	printWidth: 120,
 	quoteProps: 'preserve', // Needed for angular templates, like ngClass
 };

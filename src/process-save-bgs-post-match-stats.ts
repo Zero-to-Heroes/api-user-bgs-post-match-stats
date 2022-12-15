@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 import { getConnection, logBeforeTimeout, logger, S3, Sns } from '@firestone-hs/aws-lambda-utils';
 import { BgsPostMatchStats, parseBattlegroundsGame } from '@firestone-hs/hs-replay-xml-parser/dist/public-api';
+import { AllCardsService } from '@firestone-hs/reference-data';
 import { deflate } from 'pako';
 import { ServerlessMysql } from 'serverless-mysql';
 import SqlString from 'sqlstring';
@@ -10,16 +11,18 @@ import { buildNewStats } from './stats-builder';
 
 const s3 = new S3();
 const sns = new Sns();
+const allCards = new AllCardsService();
 
 export default async (event, context): Promise<any> => {
 	const cleanup = logBeforeTimeout(context);
+	await allCards.initializeCardsDb();
 	const events: readonly Input[] = (event.Records as any[])
 		.map(event => JSON.parse(event.body))
 		.reduce((a, b) => a.concat(b), [])
 		.filter(event => event);
 	const mysql = await getConnection();
 	for (const ev of events) {
-		await processEvent(ev, mysql);
+		await processEvent(ev, mysql, allCards);
 	}
 	const response = {
 		statusCode: 200,
@@ -31,7 +34,7 @@ export default async (event, context): Promise<any> => {
 	return response;
 };
 
-const processEvent = async (input: Input, mysql: ServerlessMysql) => {
+const processEvent = async (input: Input, mysql: ServerlessMysql, allCards: AllCardsService) => {
 	logger.debug('processing review', input.reviewId);
 
 	const review = await loadReview(input.reviewId, mysql);
@@ -63,6 +66,7 @@ const processEvent = async (input: Input, mysql: ServerlessMysql) => {
 		input.mainPlayer,
 		input.battleResultHistory,
 		input.faceOffs,
+		allCards,
 	);
 	logger.debug('parsed battlegrounds game', input.mainPlayer, input.battleResultHistory, input.faceOffs);
 	if (!postMatchStats) {

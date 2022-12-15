@@ -1,12 +1,12 @@
 {
 	"name": "@firestone-hs/user-bgs-post-match-stats",
-	"version": "1.0.3",
+	"version": "1.0.4",
 	"description": "",
 	"scripts": {
 		"lint": "eslint --color --fix --ext .ts .",
 		"start": "webpack -w --color",
 		"test": "jest",
-		"build": "npm audit fix && webpack --env.buildEnv=prod --color",
+		"build": "webpack --env.buildEnv=prod --color",
 		"package": "sam package --template-file template.yaml --s3-bucket com.zerotoheroes.artifact --output-template-file template.packaged.yaml",
 		"deploy": "sam deploy --template-file template.packaged.yaml --stack-name UserBgsPostMatchStatsStack --capabilities CAPABILITY_IAM",
 		"clean": "rm -rf -v dist/*"
@@ -22,8 +22,8 @@
 	],
 	"dependencies": {
 		"@firestone-hs/aws-lambda-utils": "0.0.8",
-		"@firestone-hs/hs-replay-xml-parser": "0.0.95",
-		"@firestone-hs/reference-data": "^0.1.196",
+		"@firestone-hs/hs-replay-xml-parser": "^0.0.112",
+		"@firestone-hs/reference-data": "^1.0.48",
 		"aws-sdk": "^2.888.0",
 		"cross-fetch": "^3.1.5",
 		"jszip": "^3.7.1",
@@ -56,19 +56,5 @@
 		"webpack": "^4.39.3",
 		"webpack-cli": "^3.3.8",
 		"yaml-cfn": "^0.2.2"
-	},
-	"jest": {
-		"transform": {
-			"^.+\\.tsx?$": "ts-jest"
-		},
-		"testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$",
-		"moduleFileExtensions": [
-			"ts",
-			"tsx",
-			"js",
-			"jsx",
-			"json",
-			"node"
-		]
 	}
 }
