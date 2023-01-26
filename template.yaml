@@ -80,7 +80,7 @@ Resources:
             Runtime: nodejs12.x
             CodeUri: ./dist/process-save-bgs-post-match-stats
             MemorySize: 620
-            ReservedConcurrentExecutions: 10
+            ReservedConcurrentExecutions: 12
             Policies:
                 - AWSLambdaVPCAccessExecutionRole
                 - SecretsManagerReadWrite
@@ -90,7 +90,7 @@ Resources:
                 # - arn:aws:iam::478062583808:policy/CloudWatchPolicyForLambda # See https://stackoverflow.com/questions/51166504/disable-cloudwatch-to-monitor-logs-for-lambda-function
             Tags:
                 LambdaName: process-save-bgs-post-match-stats
-            Timeout: 90
+            Timeout: 110
             Events:
                 SQSMapperRequestedEvent:
                     Type: SQS
