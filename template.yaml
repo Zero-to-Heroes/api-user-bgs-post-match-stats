@@ -80,7 +80,7 @@ Resources:
             Runtime: nodejs12.x
             CodeUri: ./dist/process-save-bgs-post-match-stats
             MemorySize: 620
-            ReservedConcurrentExecutions: 12
+            ReservedConcurrentExecutions: 10
             Policies:
                 - AWSLambdaVPCAccessExecutionRole
                 - SecretsManagerReadWrite
@@ -96,7 +96,7 @@ Resources:
                     Type: SQS
                     Properties:
                         Queue: !GetAtt SaveBgsPostMatchStatsQueue.Arn
-                        # BatchSize: 1
+                        BatchSize: 1
 
 Outputs:
     UserBgsPostMatchStatsApi:
