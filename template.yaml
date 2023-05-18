@@ -51,6 +51,24 @@ Resources:
                     Properties:
                         Path: /get/{proxy+}
                         Method: any
+    RetrieveBgsPostMatchStatsFunction2:
+        Type: AWS::Serverless::Function
+        Properties:
+            Handler: retrieve-bgs-post-match-stats.default
+            Runtime: nodejs16.x
+            CodeUri: ./dist/retrieve-bgs-post-match-stats
+            Timeout: 15
+            Policies:
+                - AWSLambdaVPCAccessExecutionRole
+                - AmazonSESFullAccess
+                - AmazonSQSFullAccess
+                - SecretsManagerReadWrite
+                # - arn:aws:iam::478062583808:policy/CloudWatchPolicyForLambda # See https://stackoverflow.com/questions/51166504/disable-cloudwatch-to-monitor-logs-for-lambda-function
+            Tags:
+                LambdaName: api-retrieve-bgs-post-match-stats-2
+            AutoPublishAlias: live
+            FunctionUrlConfig:
+                AuthType: NONE
     StartSaveBgsPostMatchStatsFunction:
         Type: AWS::Serverless::Function
         Properties:
@@ -73,6 +91,24 @@ Resources:
                     Properties:
                         Path: /save/{proxy+}
                         Method: any
+    StartSaveBgsPostMatchStatsFunction2:
+        Type: AWS::Serverless::Function
+        Properties:
+            Handler: start-save-bgs-post-match-stats.default
+            Runtime: nodejs16.x
+            CodeUri: ./dist/start-save-bgs-post-match-stats
+            Timeout: 15
+            Policies:
+                - AWSLambdaVPCAccessExecutionRole
+                - AmazonSESFullAccess
+                - AmazonSQSFullAccess
+                - SecretsManagerReadWrite
+                # - arn:aws:iam::478062583808:policy/CloudWatchPolicyForLambda # See https://stackoverflow.com/questions/51166504/disable-cloudwatch-to-monitor-logs-for-lambda-function
+            Tags:
+                LambdaName: api-start-save-bgs-post-match-stats-2
+            AutoPublishAlias: live
+            FunctionUrlConfig:
+                AuthType: NONE
     ProcessSaveBgsPostMatchStatsFunction:
         Type: AWS::Serverless::Function
         Properties:
