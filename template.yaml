@@ -16,7 +16,7 @@ Globals:
         Environment:
             Variables:
                 SQS_URL: !Ref SaveBgsPostMatchStatsQueue
-                BG_PERFECT_GAME_SNS_TOPIC: !Ref BgPerfectGameSnsTopic
+                # BG_PERFECT_GAME_SNS_TOPIC: !Ref BgPerfectGameSnsTopic
 
 Resources:
     SaveBgsPostMatchStatsQueue:
@@ -24,11 +24,11 @@ Resources:
         Properties:
             QueueName: deferred-save-bgs-post-match-stats-queue
             VisibilityTimeout: 601
-    BgPerfectGameSnsTopic:
-        Type: AWS::SNS::Topic
-        Properties:
-            TopicName: 'bg-perfect-game'
-            DisplayName: 'bg-perfect-game'
+    # BgPerfectGameSnsTopic:
+    #     Type: AWS::SNS::Topic
+    #     Properties:
+    #         TopicName: 'bg-perfect-game'
+    #         DisplayName: 'bg-perfect-game'
     RetrieveBgsPostMatchStatsFunction:
         Type: AWS::Serverless::Function
         Properties:

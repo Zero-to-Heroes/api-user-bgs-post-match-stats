@@ -182,17 +182,17 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, allCards: AllC
 		logger.debug('result', result);
 	}
 
-	if (isPerfectGame(review, postMatchStats)) {
-		await sns.notifyBgPerfectGame(review);
-		const query = `
-			UPDATE replay_summary
-			SET bgsPerfectGame = 1
-			WHERE reviewId = ${SqlString.escape(review.reviewId)}
-		`;
-		logger.debug('running query', query);
-		const result = await mysql.query(query);
-		logger.debug('result', result);
-	}
+	// if (isPerfectGame(review, postMatchStats)) {
+	// 	await sns.notifyBgPerfectGame(review);
+	// 	const query = `
+	// 		UPDATE replay_summary
+	// 		SET bgsPerfectGame = 1
+	// 		WHERE reviewId = ${SqlString.escape(review.reviewId)}
+	// 	`;
+	// 	logger.debug('running query', query);
+	// 	const result = await mysql.query(query);
+	// 	logger.debug('result', result);
+	// }
 
 	// And update the bgs_run_stats table
 	const winrates = postMatchStats.battleResultHistory.map((info) => ({
@@ -200,7 +200,7 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, allCards: AllC
 		winrate: info.simulationResult.wonPercent,
 	}));
 	logger.debug('winrates', review.reviewId, winrates?.length);
-	if (winrates.length) {
+	if (winrates.length && input.userName !== 'daedin') {
 		const query = `
 			UPDATE bgs_run_stats
 			SET combatWinrate = ${SqlString.escape(JSON.stringify(winrates))}
@@ -215,22 +215,22 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, allCards: AllC
 };
 
 // TODO: why is it here? It shoud be done in the main parser
-export const isPerfectGame = (review: any, postMatchStats: BgsPostMatchStats): boolean => {
-	if (!review.additionalResult || parseInt(review.additionalResult) !== 1) {
-		return false;
-	}
+// export const isPerfectGame = (review: any, postMatchStats: BgsPostMatchStats): boolean => {
+// 	if (!review.additionalResult || parseInt(review.additionalResult) !== 1) {
+// 		return false;
+// 	}
 
-	const mainPlayerCardId = review.playerCardId;
-	const mainPlayerHpOverTurn = postMatchStats.hpOverTurn[mainPlayerCardId];
-	// Let's use 8 turns as a minimum to be considered a perfect game
-	if (!mainPlayerHpOverTurn?.length || mainPlayerHpOverTurn.length < 8) {
-		return false;
-	}
+// 	const mainPlayerCardId = review.playerCardId;
+// 	const mainPlayerHpOverTurn = postMatchStats.hpOverTurn[mainPlayerCardId];
+// 	// Let's use 8 turns as a minimum to be considered a perfect game
+// 	if (!mainPlayerHpOverTurn?.length || mainPlayerHpOverTurn.length < 8) {
+// 		return false;
+// 	}
 
-	const startingHp = mainPlayerHpOverTurn[0].value;
-	const endHp = mainPlayerHpOverTurn[mainPlayerHpOverTurn.length - 1].value;
-	return endHp === startingHp;
-};
+// 	const startingHp = mainPlayerHpOverTurn[0].value;
+// 	const endHp = mainPlayerHpOverTurn[mainPlayerHpOverTurn.length - 1].value;
+// 	return endHp === startingHp;
+// };
 
 const compressPostMatchStats = (postMatchStats: BgsPostMatchStats, maxLength: number): string => {
 	const base64data = compressStats(postMatchStats);
