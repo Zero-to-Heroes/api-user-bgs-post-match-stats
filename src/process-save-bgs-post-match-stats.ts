@@ -17,9 +17,9 @@ export default async (event, context): Promise<any> => {
 	const cleanup = logBeforeTimeout(context);
 	await allCards.initializeCardsDb();
 	const events: readonly Input[] = (event.Records as any[])
-		.map(event => JSON.parse(event.body))
+		.map((event) => JSON.parse(event.body))
 		.reduce((a, b) => a.concat(b), [])
-		.filter(event => event);
+		.filter((event) => event);
 	const mysql = await getConnection();
 	for (const ev of events) {
 		await processEvent(ev, mysql, allCards);
@@ -128,18 +128,18 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, allCards: AllC
 		// Load existing stats
 		const query = `
 			SELECT * FROM bgs_user_best_stats
-			WHERE userId IN (${userIds.map(result => "'" + result.userId + "'").join(',')})
+			WHERE userId IN (${userIds.map((result) => "'" + result.userId + "'").join(',')})
 		`;
 		const existingStats: BgsBestStat[] = await mysql.query(query);
 
 		const today = toCreationDate(new Date());
 		const newStats: readonly BgsBestStat[] = buildNewStats(existingStats, postMatchStats, input, today);
 		const statsToCreate = newStats
-			.filter(stat => !stat.id)
-			.filter(stat => !isNaN(stat.value) && isFinite(stat.value));
+			.filter((stat) => !stat.id)
+			.filter((stat) => !isNaN(stat.value) && isFinite(stat.value));
 		const statsToUpdate = newStats
-			.filter(stat => stat.id)
-			.filter(stat => !isNaN(stat.value) && isFinite(stat.value));
+			.filter((stat) => stat.id)
+			.filter((stat) => !isNaN(stat.value) && isFinite(stat.value));
 
 		const createQuery =
 			statsToCreate.length > 0
@@ -147,11 +147,11 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, allCards: AllC
 						INSERT INTO bgs_user_best_stats
 						(userId, statName, value, lastUpdateDate, reviewId)
 						VALUES 
-							${statsToCreate.map(stat => toStatCreationLine(stat, today)).join(',\n')}
+							${statsToCreate.map((stat) => toStatCreationLine(stat, today)).join(',\n')}
 					`
 				: null;
 		const updateQueries = statsToUpdate.map(
-			stat => `
+			(stat) => `
 						UPDATE bgs_user_best_stats
 						SET 
 							value = ${stat.value},
@@ -162,8 +162,8 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, allCards: AllC
 							id = ${stat.id}
 					`,
 		);
-		const allQueries = [createQuery, ...updateQueries].filter(query => query);
-		await Promise.all(allQueries.map(query => mysql.query(query)));
+		const allQueries = [createQuery, ...updateQueries].filter((query) => query);
+		await Promise.all(allQueries.map((query) => mysql.query(query)));
 		// await Promise.all(allQueries.map(query => mysqlBgs.query(query)));
 		statsWithMmr.updatedBestValues = newStats;
 	}
@@ -195,7 +195,7 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, allCards: AllC
 	}
 
 	// And update the bgs_run_stats table
-	const winrates = postMatchStats.battleResultHistory.map(info => ({
+	const winrates = postMatchStats.battleResultHistory.map((info) => ({
 		turn: info.turn,
 		winrate: info.simulationResult.wonPercent,
 	}));
@@ -214,6 +214,7 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, allCards: AllC
 	}
 };
 
+// TODO: why is it here? It shoud be done in the main parser
 export const isPerfectGame = (review: any, postMatchStats: BgsPostMatchStats): boolean => {
 	if (!review.additionalResult || parseInt(review.additionalResult) !== 1) {
 		return false;
@@ -270,8 +271,8 @@ const toStatCreationLine = (stat: BgsBestStat, today: string): string => {
 };
 
 const loadReview = async (reviewId: string, mysql: ServerlessMysql) => {
-	return new Promise<any>(resolve => {
-		loadReviewInternal(reviewId, mysql, review => resolve(review));
+	return new Promise<any>((resolve) => {
+		loadReviewInternal(reviewId, mysql, (review) => resolve(review));
 	});
 };
 
@@ -296,8 +297,8 @@ const loadReviewInternal = async (reviewId: string, mysql: ServerlessMysql, call
 };
 
 const loadReplayString = async (replayKey: string): Promise<string> => {
-	return new Promise<string>(resolve => {
-		loadReplayStringInternal(replayKey, replayString => resolve(replayString));
+	return new Promise<string>((resolve) => {
+		loadReplayStringInternal(replayKey, (replayString) => resolve(replayString));
 	});
 };
 
@@ -316,8 +317,5 @@ const loadReplayStringInternal = async (replayKey: string, callback): Promise<st
 };
 
 const toCreationDate = (today: Date): string => {
-	return `${today
-		.toISOString()
-		.slice(0, 19)
-		.replace('T', ' ')}.${today.getMilliseconds()}`;
+	return `${today.toISOString().slice(0, 19).replace('T', ' ')}.${today.getMilliseconds()}`;
 };
