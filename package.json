@@ -20,8 +20,8 @@
 	],
 	"dependencies": {
 		"@firestone-hs/aws-lambda-utils": "0.0.8",
-		"@firestone-hs/hs-replay-xml-parser": "^0.0.115",
-		"@firestone-hs/reference-data": "^1.0.48",
+		"@firestone-hs/hs-replay-xml-parser": "^0.0.128",
+		"@firestone-hs/reference-data": "^1.0.124",
 		"aws-sdk": "^2.1040.0",
 		"cross-fetch": "^3.1.5",
 		"jszip": "^3.7.1",
