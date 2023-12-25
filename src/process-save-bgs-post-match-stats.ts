@@ -180,6 +180,16 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, allCards: AllC
 		logger.debug('running query', query);
 		const result = await mysql.query(query);
 		logger.debug('result', result);
+
+		// In case the race condition meant that the perfect game was created before the post-match stats were saved
+		const perfectGameQuery = `
+			UPDATE bgs_perfect_game 
+			SET finalComp = ?
+			WHERE originalReviewId = ?
+		`;
+		logger.debug('running perfect games query', query);
+		const perfectGamesResult = await mysql.query(perfectGameQuery, [compressedFinalBoard, review.reviewId]);
+		logger.debug('perfect game result', result);
 	}
 
 	// if (isPerfectGame(review, postMatchStats)) {
