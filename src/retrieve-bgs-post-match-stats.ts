@@ -5,6 +5,12 @@ import { gzipSync } from 'zlib';
 import { Input } from './sqs-event';
 
 export default async (event, context): Promise<any> => {
+	if (!event.body?.length) {
+		logger.log('Missing body', event);
+		return {
+			statusCode: 400,
+		};
+	}
 	const cleanup = logBeforeTimeout(context);
 	const input: Input = JSON.parse(event.body);
 	const result = input.reviewId ? await handleSinglReviewRetrieve(input) : await handleMultiReviewsRetrieve(input);
@@ -42,8 +48,8 @@ const handleSinglReviewRetrieve = async (input: Input): Promise<any> => {
 	}
 
 	const results: any[] = rawResults
-		.filter(result => result.jsonStats && result.jsonStats.length <= 50000)
-		.map(result => {
+		.filter((result) => result.jsonStats && result.jsonStats.length <= 50000)
+		.map((result) => {
 			const stats = parseStats(result.jsonStats);
 			return {
 				reviewId: result.reviewId,
@@ -52,7 +58,7 @@ const handleSinglReviewRetrieve = async (input: Input): Promise<any> => {
 				userName: null,
 			};
 		})
-		.filter(result => result.stats);
+		.filter((result) => result.stats);
 	await mysql.end();
 
 	const zipped = await zip(JSON.stringify(results));
@@ -83,15 +89,15 @@ const handleMultiReviewsRetrieve = async (input: Input): Promise<any> => {
 	const rawResults: any[] = (await mysql.query(query)) as any[];
 
 	const results: any[] = rawResults
-		.filter(result => result.jsonStats && result.jsonStats.length <= 50000)
-		.map(result => {
+		.filter((result) => result.jsonStats && result.jsonStats.length <= 50000)
+		.map((result) => {
 			const stats = parseStats(result.jsonStats);
 			return {
 				reviewId: result.reviewId,
 				stats: stats,
 			};
 		})
-		.filter(result => result.stats);
+		.filter((result) => result.stats);
 	await mysql.end();
 
 	const zipped = await zip(JSON.stringify(results));
