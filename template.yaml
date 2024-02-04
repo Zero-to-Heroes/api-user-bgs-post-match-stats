@@ -21,18 +21,18 @@ Resources:
         Type: AWS::Serverless::Function
         Properties:
             Handler: retrieve-bgs-post-match-stats.default
-            Runtime: nodejs16.x
+            Runtime: nodejs18.x
             CodeUri: ./dist/retrieve-bgs-post-match-stats
             Timeout: 15
-            Layers:
-                - !Sub "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:14"
+            # Layers:
+            #     - !Sub "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:14"
             Policies:
                 - AWSLambdaVPCAccessExecutionRole
                 - AmazonSESFullAccess
                 - AmazonSQSFullAccess
                 - SecretsManagerReadWrite
                 - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy
-                # - arn:aws:iam::478062583808:policy/CloudWatchPolicyForLambda # See https://stackoverflow.com/questions/51166504/disable-cloudwatch-to-monitor-logs-for-lambda-function
+                - arn:aws:iam::478062583808:policy/CloudWatchPolicyForLambda # See https://stackoverflow.com/questions/51166504/disable-cloudwatch-to-monitor-logs-for-lambda-function
             Tags:
                 LambdaName: api-retrieve-bgs-post-match-stats-2
             AutoPublishAlias: live
@@ -42,18 +42,18 @@ Resources:
         Type: AWS::Serverless::Function
         Properties:
             Handler: start-save-bgs-post-match-stats.default
-            Runtime: nodejs16.x
+            Runtime: nodejs18.x
             CodeUri: ./dist/start-save-bgs-post-match-stats
             Timeout: 15
-            Layers:
-                - !Sub "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:14"
+            # Layers:
+            #     - !Sub "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:14"
             Policies:
                 - AWSLambdaVPCAccessExecutionRole
                 - AmazonSESFullAccess
                 - AmazonSQSFullAccess
                 - SecretsManagerReadWrite
                 - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy
-                # - arn:aws:iam::478062583808:policy/CloudWatchPolicyForLambda # See https://stackoverflow.com/questions/51166504/disable-cloudwatch-to-monitor-logs-for-lambda-function
+                - arn:aws:iam::478062583808:policy/CloudWatchPolicyForLambda # See https://stackoverflow.com/questions/51166504/disable-cloudwatch-to-monitor-logs-for-lambda-function
             Tags:
                 LambdaName: api-start-save-bgs-post-match-stats-2
             AutoPublishAlias: live
