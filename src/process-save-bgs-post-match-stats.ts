@@ -48,7 +48,7 @@ const processEvent = async (input: Input, mysql: ServerlessMysql, allCards: AllC
 	}
 
 	const gameMode = review.gameMode;
-	if (gameMode !== 'battlegrounds') {
+	if (gameMode !== 'battlegrounds' && gameMode !== 'battlegrounds-duo') {
 		logger.debug('invalid non-BG review received', review);
 		return;
 	}
