@@ -4,19 +4,8 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: API endpoint for bgs post match stats
 
-Globals:
-    Function:
-        Environment:
-            Variables:
-                SQS_URL: !Ref SaveBgsPostMatchStatsQueue
-                # BG_PERFECT_GAME_SNS_TOPIC: !Ref BgPerfectGameSnsTopic
-
 Resources:
-    SaveBgsPostMatchStatsQueue:
-        Type: AWS::SQS::Queue
-        Properties:
-            QueueName: deferred-save-bgs-post-match-stats-queue
-            VisibilityTimeout: 601
+    #  Empty - delete every endpoint
     RetrieveBgsPostMatchStatsFunction2:
         Type: AWS::Serverless::Function
         Properties:
@@ -38,51 +27,3 @@ Resources:
             AutoPublishAlias: live
             FunctionUrlConfig:
                 AuthType: NONE
-    StartSaveBgsPostMatchStatsFunction2:
-        Type: AWS::Serverless::Function
-        Properties:
-            Handler: start-save-bgs-post-match-stats.default
-            Runtime: nodejs18.x
-            CodeUri: ./dist/start-save-bgs-post-match-stats
-            Timeout: 15
-            # Layers:
-            #     - !Sub "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:14"
-            Policies:
-                - AWSLambdaVPCAccessExecutionRole
-                - AmazonSESFullAccess
-                - AmazonSQSFullAccess
-                - SecretsManagerReadWrite
-                - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy
-                - arn:aws:iam::478062583808:policy/CloudWatchPolicyForLambda # See https://stackoverflow.com/questions/51166504/disable-cloudwatch-to-monitor-logs-for-lambda-function
-            Tags:
-                LambdaName: api-start-save-bgs-post-match-stats-2
-            AutoPublishAlias: live
-            FunctionUrlConfig:
-                AuthType: NONE
-    ProcessSaveBgsPostMatchStatsFunction:
-        Type: AWS::Serverless::Function
-        Properties:
-            Handler: process-save-bgs-post-match-stats.default
-            Runtime: nodejs16.x
-            CodeUri: ./dist/process-save-bgs-post-match-stats
-            MemorySize: 800
-            ReservedConcurrentExecutions: 30
-            # Layers:
-            #     - !Sub "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:14"
-            Policies:
-                - AWSLambdaVPCAccessExecutionRole
-                - SecretsManagerReadWrite
-                - AmazonSESFullAccess
-                - AmazonSQSFullAccess
-                - AmazonSNSFullAccess
-                - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy
-                - arn:aws:iam::478062583808:policy/CloudWatchPolicyForLambda # See https://stackoverflow.com/questions/51166504/disable-cloudwatch-to-monitor-logs-for-lambda-function
-            Tags:
-                LambdaName: process-save-bgs-post-match-stats
-            Timeout: 110
-            Events:
-                SQSMapperRequestedEvent:
-                    Type: SQS
-                    Properties:
-                        Queue: !GetAtt SaveBgsPostMatchStatsQueue.Arn
-                        BatchSize: 1
